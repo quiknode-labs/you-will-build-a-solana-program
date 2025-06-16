@@ -45,9 +45,9 @@ One of the challenges when teaching is avoiding ambiguity — names have to be c
   - Escrow (the program) -> remains Escrow
   - Escrow (the offer) -> Offer.
 
-- 'receive' was renamed to 'token_b_wanted_amount' as 'receive' is a verb and not a suitable name for an integer.
-- mint_a -> token_mint_a, (ie, what the maker has offered and what the taker wants). We get this from the vault where necessary.
-- mint_b -> token_mint_b (ie, what that maker wants and what the taker must offer)
+- 'receive' was renamed to 'wanted_amount' as 'receive' is a verb and not a suitable name for an integer.
+- mint_a -> offered_token, (ie, what the maker has offered and what the taker wants). We get this from the vault where necessary.
+- mint_b -> wanted_token (ie, what that maker wants and what the taker must offer)
 - makerAtaA -> makerTokenAccountA,
 - makerAtaB -> makerTokenAccountB
 - takerAtaA -> takerTokenAccountA

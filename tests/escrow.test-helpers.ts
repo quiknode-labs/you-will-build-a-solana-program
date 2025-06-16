@@ -1,9 +1,5 @@
 import { Connection } from "solana-kite";
-import {
-  lamports,
-  type KeyPairSigner,
-  type Address,
-} from "@solana/kit";
+import { lamports, type KeyPairSigner, type Address } from "@solana/kit";
 import * as programClient from "../dist/js-client";
 import { TOKEN_EXTENSIONS_PROGRAM } from "solana-kite";
 
@@ -23,38 +19,38 @@ export const getRandomBigInt = () => {
 export async function createTestOffer(params: {
   connection: Connection;
   maker: KeyPairSigner;
-  tokenMintA: Address;
-  tokenMintB: Address;
+  offeredToken: Address;
+  wantedToken: Address;
   makerTokenAccountA: Address;
   tokenAOfferedAmount: bigint;
-  tokenBWantedAmount: bigint;
+  wantedAmount: bigint;
   offerId?: bigint;
 }) {
   const {
     connection,
     maker,
-    tokenMintA,
-    tokenMintB,
+    offeredToken,
+    wantedToken,
     makerTokenAccountA,
     tokenAOfferedAmount,
-    tokenBWantedAmount,
+    wantedAmount,
     offerId = getRandomBigInt(),
   } = params;
 
   const offerPDAAndBump = await connection.getPDAAndBump(programClient.ESCROW_PROGRAM_ADDRESS, ["offer", offerId]);
   const offer = offerPDAAndBump.pda;
-  const vault = await connection.getTokenAccountAddress(offer, tokenMintA, true);
+  const vault = await connection.getTokenAccountAddress(offer, offeredToken, true);
 
   const makeOfferInstruction = await programClient.getMakeOfferInstructionAsync({
     maker,
-    tokenMintA,
-    tokenMintB,
+    offeredToken,
+    wantedToken,
     makerTokenAccountA,
     offer,
     vault,
     id: offerId,
     tokenAOfferedAmount,
-    tokenBWantedAmount,
+    wantedAmount,
     tokenProgram: TOKEN_EXTENSIONS_PROGRAM,
   });
 

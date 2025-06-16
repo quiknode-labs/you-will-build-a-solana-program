@@ -18,8 +18,8 @@ describe("Escrow", () => {
   let user: KeyPairSigner;
   let alice: KeyPairSigner;
   let bob: KeyPairSigner;
-  let tokenMintA: Address;
-  let tokenMintB: Address;
+  let offeredToken: Address;
+  let wantedToken: Address;
   let aliceTokenAccountA: Address;
   let bobTokenAccountA: Address;
   let aliceTokenAccountB: Address;
@@ -38,7 +38,7 @@ describe("Escrow", () => {
 
   // Alice will offer 1 token of token A in exchange for 1 token of token B
   const tokenAOfferedAmount = 1n * TOKEN;
-  const tokenBWantedAmount = 1n * TOKEN;
+  const wantedAmount = 1n * TOKEN;
 
   before(async () => {
     connection = await connect();
@@ -47,7 +47,7 @@ describe("Escrow", () => {
     [user, alice, bob] = await connection.createWallets(3, { airdropAmount: ONE_SOL });
 
     // Create two token mints - the factories that create token A, and token B
-    tokenMintA = await connection.createTokenMint({
+    offeredToken = await connection.createTokenMint({
       mintAuthority: user,
       decimals: tokenDecimals,
       name: "Token A",
@@ -59,7 +59,7 @@ describe("Escrow", () => {
       },
     });
 
-    tokenMintB = await connection.createTokenMint({
+    wantedToken = await connection.createTokenMint({
       mintAuthority: user,
       decimals: tokenDecimals,
       name: "Token B",
@@ -72,14 +72,14 @@ describe("Escrow", () => {
     });
 
     // Mint tokens to alice and bob
-    await connection.mintTokens(tokenMintA, user, aliceInitialTokenAAmount, alice.address);
-    await connection.mintTokens(tokenMintA, user, bobInitialTokenAAmount, bob.address);
-    await connection.mintTokens(tokenMintB, user, bobInitialTokenBAmount, bob.address);
+    await connection.mintTokens(offeredToken, user, aliceInitialTokenAAmount, alice.address);
+    await connection.mintTokens(offeredToken, user, bobInitialTokenAAmount, bob.address);
+    await connection.mintTokens(wantedToken, user, bobInitialTokenBAmount, bob.address);
 
     // Get the token accounts for alice and bob
-    aliceTokenAccountA = await connection.getTokenAccountAddress(alice.address, tokenMintA, true);
-    bobTokenAccountA = await connection.getTokenAccountAddress(bob.address, tokenMintA, true);
-    aliceTokenAccountB = await connection.getTokenAccountAddress(alice.address, tokenMintB, true);
+    aliceTokenAccountA = await connection.getTokenAccountAddress(alice.address, offeredToken, true);
+    bobTokenAccountA = await connection.getTokenAccountAddress(bob.address, offeredToken, true);
+    aliceTokenAccountB = await connection.getTokenAccountAddress(alice.address, wantedToken, true);
   });
 
   describe("makeOffer", () => {
@@ -87,17 +87,17 @@ describe("Escrow", () => {
       const { offer, vault } = await createTestOffer({
         connection,
         maker: alice,
-        tokenMintA,
-        tokenMintB,
+        offeredToken,
+        wantedToken,
         makerTokenAccountA: aliceTokenAccountA,
         tokenAOfferedAmount,
-        tokenBWantedAmount,
+        wantedAmount,
       });
 
       // Verify the offer was created successfully by checking the vault balance
       const vaultBalanceResponse = await connection.getTokenAccountBalance({
         tokenAccount: vault,
-        mint: tokenMintA,
+        mint: offeredToken,
         useTokenExtensions: true,
       });
       assert.equal(vaultBalanceResponse.amount, tokenAOfferedAmount, "Vault balance should match offered amount");
@@ -109,29 +109,29 @@ describe("Escrow", () => {
       await createTestOffer({
         connection,
         maker: alice,
-        tokenMintA,
-        tokenMintB,
+        offeredToken,
+        wantedToken,
         makerTokenAccountA: aliceTokenAccountA,
         tokenAOfferedAmount,
-        tokenBWantedAmount,
+        wantedAmount,
         offerId,
       });
 
       // Now try to create another offer with Bob using the same offer ID
 
       // Create bobTokenAccountA if it doesn't exist
-      bobTokenAccountA = await connection.getTokenAccountAddress(bob.address, tokenMintA, true);
+      bobTokenAccountA = await connection.getTokenAccountAddress(bob.address, offeredToken, true);
 
       let testOffer: { offer: Address; vault: Address; offerId: bigint; signature: string };
       try {
         testOffer = await createTestOffer({
           connection,
           maker: bob,
-          tokenMintA,
-          tokenMintB,
+          offeredToken,
+          wantedToken,
           makerTokenAccountA: bobTokenAccountA,
           tokenAOfferedAmount: bobInitialTokenAAmount,
-          tokenBWantedAmount,
+          wantedAmount,
           offerId, // Reusing the same offer ID
         });
       } catch (thrownObject) {
@@ -147,11 +147,11 @@ describe("Escrow", () => {
         await createTestOffer({
           connection,
           maker: alice,
-          tokenMintA,
-          tokenMintB,
+          offeredToken,
+          wantedToken,
           makerTokenAccountA: aliceTokenAccountA,
           tokenAOfferedAmount: tooManyTokens,
-          tokenBWantedAmount,
+          wantedAmount,
         });
         assert.fail("Expected the offer creation to fail but it succeeded");
       } catch (thrownObject) {
@@ -168,11 +168,11 @@ describe("Escrow", () => {
         await createTestOffer({
           connection,
           maker: alice,
-          tokenMintA,
-          tokenMintB: tokenMintA, // Using same mint
+          offeredToken,
+          wantedToken: offeredToken, // Using same mint
           makerTokenAccountA: aliceTokenAccountA,
           tokenAOfferedAmount,
-          tokenBWantedAmount,
+          wantedAmount,
         });
         assert.fail("Expected the offer creation to fail but it succeeded");
       } catch (thrownObject) {
@@ -184,16 +184,16 @@ describe("Escrow", () => {
       }
     });
 
-    test("fails when token_b_wanted_amount is zero", async () => {
+    test("fails when wanted_amount is zero", async () => {
       try {
         await createTestOffer({
           connection,
           maker: alice,
-          tokenMintA,
-          tokenMintB,
+          offeredToken,
+          wantedToken,
           makerTokenAccountA: aliceTokenAccountA,
           tokenAOfferedAmount,
-          tokenBWantedAmount: 0n,
+          wantedAmount: 0n,
         });
         assert.fail("Expected the offer creation to fail but it succeeded");
       } catch (thrownObject) {
@@ -207,11 +207,11 @@ describe("Escrow", () => {
         await createTestOffer({
           connection,
           maker: alice,
-          tokenMintA,
-          tokenMintB,
+          offeredToken,
+          wantedToken,
           makerTokenAccountA: aliceTokenAccountA,
           tokenAOfferedAmount: 0n,
-          tokenBWantedAmount,
+          wantedAmount,
         });
         assert.fail("Expected the offer creation to fail but it succeeded");
       } catch (thrownObject) {
@@ -240,13 +240,9 @@ describe("Escrow", () => {
         // This offer was created by Alice in the first makeOffer test
         assert.equal(offer1.address, offer1.address, "Offer 1 address should match");
         assert.equal(offer1.data.maker, alice.address, "Offer 1 maker address should match Alice");
-        assert.equal(offer1.data.tokenMintA, tokenMintA, "Offer 1 tokenMintA should match");
-        assert.equal(offer1.data.tokenMintB, tokenMintB, "Offer 1 tokenMintB should match");
-        assert.equal(
-          offer1.data.tokenBWantedAmount,
-          tokenBWantedAmount.toString(),
-          "Offer 1 tokenBWantedAmount should match",
-        );
+        assert.equal(offer1.data.offeredToken, offeredToken, "Offer 1 offeredToken should match");
+        assert.equal(offer1.data.wantedToken, wantedToken, "Offer 1 wantedToken should match");
+        assert.equal(offer1.data.wantedAmount, wantedAmount.toString(), "Offer 1 wantedAmount should match");
         assert.ok(typeof offer1.data.bump === "number", "Offer 1 bump should be a number");
         assert.ok(offer1.data.discriminator, "Offer 1 discriminator should exist");
       }
@@ -258,13 +254,9 @@ describe("Escrow", () => {
         // This offer was also created by Alice, with a specific offer ID
         assert.equal(offer2.address, offer2.address, "Offer 2 address should match");
         assert.equal(offer2.data.maker, alice.address, "Offer 2 maker address should match Alice");
-        assert.equal(offer2.data.tokenMintA, tokenMintA, "Offer 2 tokenMintA should match");
-        assert.equal(offer2.data.tokenMintB, tokenMintB, "Offer 2 tokenMintB should match");
-        assert.equal(
-          offer2.data.tokenBWantedAmount,
-          tokenBWantedAmount.toString(),
-          "Offer 2 tokenBWantedAmount should match",
-        );
+        assert.equal(offer2.data.offeredToken, offeredToken, "Offer 2 offeredToken should match");
+        assert.equal(offer2.data.wantedToken, wantedToken, "Offer 2 wantedToken should match");
+        assert.equal(offer2.data.wantedAmount, wantedAmount.toString(), "Offer 2 wantedAmount should match");
         assert.ok(typeof offer2.data.bump === "number", "Offer 2 bump should be a number");
         assert.ok(offer2.data.discriminator, "Offer 2 discriminator should exist");
       }
@@ -279,11 +271,11 @@ describe("Escrow", () => {
       const result = await createTestOffer({
         connection,
         maker: alice,
-        tokenMintA,
-        tokenMintB,
+        offeredToken,
+        wantedToken,
         makerTokenAccountA: aliceTokenAccountA,
         tokenAOfferedAmount,
-        tokenBWantedAmount,
+        wantedAmount,
       });
       testOffer = result.offer;
       testVault = result.vault;
@@ -293,8 +285,8 @@ describe("Escrow", () => {
       const takeOfferInstruction = await programClient.getTakeOfferInstructionAsync({
         taker: bob,
         maker: alice.address,
-        tokenMintA,
-        tokenMintB,
+        offeredToken,
+        wantedToken,
         takerTokenAccountA: bobTokenAccountA,
         makerTokenAccountB: aliceTokenAccountB,
         offer: testOffer,
@@ -310,7 +302,7 @@ describe("Escrow", () => {
       // Verify token transfers
       const bobTokenABalance = await connection.getTokenAccountBalance({
         tokenAccount: bobTokenAccountA,
-        mint: tokenMintA,
+        mint: offeredToken,
         useTokenExtensions: true,
       });
       assert.equal(
@@ -321,10 +313,10 @@ describe("Escrow", () => {
 
       const aliceTokenBBalance = await connection.getTokenAccountBalance({
         tokenAccount: aliceTokenAccountB,
-        mint: tokenMintB,
+        mint: wantedToken,
         useTokenExtensions: true,
       });
-      assert.equal(aliceTokenBBalance.amount, tokenBWantedAmount, "Alice's token B balance should match wanted amount");
+      assert.equal(aliceTokenBBalance.amount, wantedAmount, "Alice's token B balance should match wanted amount");
     });
 
     test("fails when taker has insufficient token balance", async () => {
@@ -333,18 +325,18 @@ describe("Escrow", () => {
       const { offer, vault } = await createTestOffer({
         connection,
         maker: alice,
-        tokenMintA,
-        tokenMintB,
+        offeredToken,
+        wantedToken,
         makerTokenAccountA: aliceTokenAccountA,
         tokenAOfferedAmount,
-        tokenBWantedAmount: largeTokenBAmount,
+        wantedAmount: largeTokenBAmount,
       });
 
       const takeOfferInstruction = await programClient.getTakeOfferInstructionAsync({
         taker: bob,
         maker: alice.address,
-        tokenMintA,
-        tokenMintB,
+        offeredToken,
+        wantedToken,
         takerTokenAccountA: bobTokenAccountA,
         makerTokenAccountB: aliceTokenAccountB,
         offer,
@@ -376,11 +368,11 @@ describe("Escrow", () => {
       const result = await createTestOffer({
         connection,
         maker: alice,
-        tokenMintA,
-        tokenMintB,
+        offeredToken,
+        wantedToken,
         makerTokenAccountA: aliceTokenAccountA,
         tokenAOfferedAmount,
-        tokenBWantedAmount,
+        wantedAmount,
       });
       testOffer = result.offer;
       testVault = result.vault;
@@ -389,13 +381,13 @@ describe("Escrow", () => {
     test("successfully refunds an offer to the maker", async () => {
       const aliceBalanceBefore = await connection.getTokenAccountBalance({
         tokenAccount: aliceTokenAccountA,
-        mint: tokenMintA,
+        mint: offeredToken,
         useTokenExtensions: true,
       });
 
       const refundOfferInstruction = await programClient.getRefundOfferInstructionAsync({
         maker: alice,
-        tokenMintA,
+        offeredToken,
         makerTokenAccountA: aliceTokenAccountA,
         offer: testOffer,
         vault: testVault,
@@ -410,7 +402,7 @@ describe("Escrow", () => {
       // Verify refund
       const aliceBalanceAfter = await connection.getTokenAccountBalance({
         tokenAccount: aliceTokenAccountA,
-        mint: tokenMintA,
+        mint: offeredToken,
         useTokenExtensions: true,
       });
       assert.ok(
@@ -430,16 +422,16 @@ describe("Escrow", () => {
       const { offer, vault } = await createTestOffer({
         connection,
         maker: alice,
-        tokenMintA,
-        tokenMintB,
+        offeredToken,
+        wantedToken,
         makerTokenAccountA: aliceTokenAccountA,
         tokenAOfferedAmount,
-        tokenBWantedAmount,
+        wantedAmount,
       });
 
       const refundOfferInstruction = await programClient.getRefundOfferInstructionAsync({
         maker: bob,
-        tokenMintA,
+        offeredToken,
         makerTokenAccountA: bobTokenAccountA,
         offer,
         vault,

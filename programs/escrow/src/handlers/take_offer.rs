@@ -17,14 +17,14 @@ pub struct TakeOffer<'info> {
     #[account(mut)]
     pub maker: SystemAccount<'info>,
 
-    pub token_mint_a: InterfaceAccount<'info, Mint>,
+    pub offered_token: InterfaceAccount<'info, Mint>,
 
-    pub token_mint_b: InterfaceAccount<'info, Mint>,
+    pub wanted_token: InterfaceAccount<'info, Mint>,
 
     #[account(
         init_if_needed,
         payer = taker,
-        associated_token::mint = token_mint_a,
+        associated_token::mint = offered_token,
         associated_token::authority = taker,
         associated_token::token_program = token_program,
     )]
@@ -32,7 +32,7 @@ pub struct TakeOffer<'info> {
 
     #[account(
         mut,
-        associated_token::mint = token_mint_b,
+        associated_token::mint = wanted_token,
         associated_token::authority = taker,
         associated_token::token_program = token_program,
     )]
@@ -41,7 +41,7 @@ pub struct TakeOffer<'info> {
     #[account(
         init_if_needed,
         payer = taker,
-        associated_token::mint = token_mint_b,
+        associated_token::mint = wanted_token,
         associated_token::authority = maker,
         associated_token::token_program = token_program,
     )]
@@ -51,7 +51,7 @@ pub struct TakeOffer<'info> {
         mut,
         close = maker,
         has_one = maker,
-        has_one = token_mint_b,
+        has_one = wanted_token,
         seeds = [b"offer", offer.id.to_le_bytes().as_ref()],
         bump = offer.bump
     )]
@@ -59,7 +59,7 @@ pub struct TakeOffer<'info> {
 
     #[account(
         mut,
-        associated_token::mint = token_mint_a,
+        associated_token::mint = offered_token,
         associated_token::authority = offer,
         associated_token::token_program = token_program,
     )]
@@ -78,8 +78,8 @@ pub fn take_offer(context: Context<TakeOffer>) -> Result<()> {
     transfer_tokens(
         &context.accounts.taker_token_account_b,
         &context.accounts.maker_token_account_b,
-        &context.accounts.offer.token_b_wanted_amount,
-        &context.accounts.token_mint_b,
+        &context.accounts.offer.wanted_amount,
+        &context.accounts.wanted_token,
         &context.accounts.taker.to_account_info(),
         &context.accounts.token_program,
         None,
@@ -98,7 +98,7 @@ pub fn take_offer(context: Context<TakeOffer>) -> Result<()> {
         &context.accounts.vault,
         &context.accounts.taker_token_account_a,
         &context.accounts.vault.amount,
-        &context.accounts.token_mint_a,
+        &context.accounts.offered_token,
         &context.accounts.offer.to_account_info(),
         &context.accounts.token_program,
         signers_seeds,

@@ -9,11 +9,11 @@ pub struct RefundOffer<'info> {
     #[account(mut)]
     pub maker: Signer<'info>,
 
-    pub token_mint_a: InterfaceAccount<'info, Mint>,
+    pub offered_token: InterfaceAccount<'info, Mint>,
 
     #[account(
         mut,
-        associated_token::mint = token_mint_a,
+        associated_token::mint = offered_token,
         associated_token::authority = maker,
         associated_token::token_program = token_program
     )]
@@ -30,7 +30,7 @@ pub struct RefundOffer<'info> {
 
     #[account(
         mut,
-        associated_token::mint = token_mint_a,
+        associated_token::mint = offered_token,
         associated_token::authority = offer,
         associated_token::token_program = token_program,
     )]
@@ -56,7 +56,7 @@ pub fn refund_offer(context: Context<RefundOffer>) -> Result<()> {
         &context.accounts.vault,
         &context.accounts.maker_token_account_a,
         &context.accounts.vault.amount,
-        &context.accounts.token_mint_a,
+        &context.accounts.offered_token,
         &context.accounts.offer.to_account_info(),
         &context.accounts.token_program,
         signers_seeds,

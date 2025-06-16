@@ -16,9 +16,9 @@ pub mod escrow {
         context: Context<MakeOffer>,
         id: u64,
         token_a_offered_amount: u64,
-        token_b_wanted_amount: u64,
+        wanted_amount: u64,
     ) -> Result<()> {
-        handlers::make_offer::make_offer(context, id, token_a_offered_amount, token_b_wanted_amount)
+        handlers::make_offer::make_offer(context, id, token_a_offered_amount, wanted_amount)
     }
 
     pub fn take_offer(context: Context<TakeOffer>) -> Result<()> {

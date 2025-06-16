@@ -14,14 +14,14 @@ pub struct MakeOffer<'info> {
     pub maker: Signer<'info>,
 
     #[account(mint::token_program = token_program)]
-    pub token_mint_a: InterfaceAccount<'info, Mint>,
+    pub offered_token: InterfaceAccount<'info, Mint>,
 
     #[account(mint::token_program = token_program)]
-    pub token_mint_b: InterfaceAccount<'info, Mint>,
+    pub wanted_token: InterfaceAccount<'info, Mint>,
 
     #[account(
         mut,
-        associated_token::mint = token_mint_a,
+        associated_token::mint = offered_token,
         associated_token::authority = maker,
         associated_token::token_program = token_program
     )]
@@ -39,7 +39,7 @@ pub struct MakeOffer<'info> {
     #[account(
         init,
         payer = maker,
-        associated_token::mint = token_mint_a,
+        associated_token::mint = offered_token,
         associated_token::authority = offer,
         associated_token::token_program = token_program
     )]
@@ -57,15 +57,15 @@ pub fn make_offer(
     context: Context<MakeOffer>,
     id: u64,
     token_a_offered_amount: u64,
-    token_b_wanted_amount: u64,
+    wanted_amount: u64,
 ) -> Result<()> {
     // Validate amounts
     require!(token_a_offered_amount > 0, ErrorCode::InvalidAmount);
-    require!(token_b_wanted_amount > 0, ErrorCode::InvalidAmount);
+    require!(wanted_amount > 0, ErrorCode::InvalidAmount);
 
     // Validate token mints are different
     require!(
-        context.accounts.token_mint_a.key() != context.accounts.token_mint_b.key(),
+        context.accounts.offered_token.key() != context.accounts.wanted_token.key(),
         ErrorCode::InvalidTokenMint
     );
 
@@ -74,7 +74,7 @@ pub fn make_offer(
         &context.accounts.maker_token_account_a,
         &context.accounts.vault,
         &token_a_offered_amount,
-        &context.accounts.token_mint_a,
+        &context.accounts.offered_token,
         &context.accounts.maker.to_account_info(),
         &context.accounts.token_program,
         None,
@@ -85,9 +85,9 @@ pub fn make_offer(
     context.accounts.offer.set_inner(Offer {
         id,
         maker: context.accounts.maker.key(),
-        token_mint_a: context.accounts.token_mint_a.key(),
-        token_mint_b: context.accounts.token_mint_b.key(),
-        token_b_wanted_amount,
+        offered_token: context.accounts.offered_token.key(),
+        wanted_token: context.accounts.wanted_token.key(),
+        wanted_amount,
         bump: context.bumps.offer,
     });
     Ok(())
