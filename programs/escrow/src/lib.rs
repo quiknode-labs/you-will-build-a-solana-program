@@ -1,3 +1,7 @@
+#![allow(unexpected_cfgs)]
+// Stops Rust Analyzer complaining about missing configs
+// See https://solana.stackexchange.com/questions/17777
+
 use anchor_lang::prelude::*;
 use handlers::*;
 
