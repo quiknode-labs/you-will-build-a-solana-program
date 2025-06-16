@@ -18,7 +18,11 @@
     "prettier": "^3.4.2",
     "solana-kite": "^1.2.5",
     "tsx": "^4.19.3",
+    "cli-confetti": "^1.1.1",
+    "cli-update": "^3.2.8",
     "typescript": "^5.8.2"
   },
-  "type": "module"
+  "type": "module",
+  "dependencies": {
+  }
 }
